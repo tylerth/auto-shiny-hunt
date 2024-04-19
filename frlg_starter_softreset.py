@@ -48,12 +48,12 @@ def increment_soft_reset(soft_resets, is_session_reset):
         print(f'Reset #: {count}')
     return count
 
-def post_actions(sr_file, soft_reset_count):
+def post_actions(sr_file, soft_reset_count, session_resets, start):
     write_num_soft_resets(sr_file, soft_reset_count)
     end = time.time()
     elapsed = end - start
     print(f'Time elapsed: {round(elapsed/60)} mins and {round(elapsed % 60)}s')
-    print(f'Total resets this session: {reset_per_session}')
+    print(f'Total resets this session: {session_resets}')
 
 
 def validate_mode(arg):
@@ -154,9 +154,9 @@ def main():
             not_shiny = check_starter_shiny(nonshiny_r, nonshiny_g, nonshiny_b, bulb_color_coordinate_nonshiny_x, bulb_color_coordinate_nonshiny_y)
             soft_reset_count = increment_soft_reset(soft_reset_count, False)
             reset_per_session = increment_soft_reset(reset_per_session, True)
-        post_actions(sr_file, soft_reset_count)
+        post_actions(sr_file, soft_reset_count, reset_per_session, start)
     except KeyboardInterrupt:
-        post_actions(sr_file, soft_reset_count)
+        post_actions(sr_file, soft_reset_count, reset_per_session, start)
         exit
 
 main()
