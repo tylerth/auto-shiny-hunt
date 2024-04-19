@@ -21,7 +21,9 @@ def perform_soft_reset():
     pyautogui.keyDown('/') # reset, change in retroarch hotkeys
     pyautogui.keyUp('/')
 
-def perform_countdown():
+def perform_countdown(filename):
+    if os.path.exists(filename):
+        os.remove(filename)
     print('Starting program takeover in')
     countdown = 5
 
@@ -94,10 +96,10 @@ def progress_battle():
     time.sleep(14) # to get into oak lecture
     pyautogui.keyUp(b)
 
-def check_starter_shiny(n_r, n_g, n_b, x, y):
+def check_starter_shiny(n_r, n_g, n_b, x, y, filename):
     pyautogui.hotkey('shift', 'print')
     time.sleep(2)
-    im = Image.open('starter_check.png')
+    im = Image.open(filename)
     rgb_im = im.convert('RGB')
 
     r, g, b = rgb_im.getpixel((x, y))
@@ -107,7 +109,7 @@ def check_starter_shiny(n_r, n_g, n_b, x, y):
     if n_r == r and n_g == g and n_b == b:
         print('Not shiny')
         # original Filename screenshot default at /home/deck/Pictures/: Screenshot_%Y%M%D_%H%m%S
-        os.remove('starter_check.png')
+        os.remove(filename)
 
         not_shiny = True
 
@@ -120,10 +122,28 @@ def check_starter_shiny(n_r, n_g, n_b, x, y):
         not_shiny = False
         return not_shiny
 
+# monitor .422 diff
+# - width: 2560 (.4648)
+# - height: 1080 (.52)
+
+# deck .375 diff
+# - width: 1280 (.4289)
+# - height: 800 (.5275)
+def autodetect_x_y():
+
+    PIXEL_LOC_WIDTH = .46 #ratio of where the pixel to check is on screen
+    PIXEL_LOC_HEIGHT = .52
+
+    screen_size = pyautogui.size()
+    x = screen_size.width * PIXEL_LOC_WIDTH
+    y = screen_size.height * PIXEL_LOC_HEIGHT
+
+    return {'x' : x, 'y' : y} 
 
 
 def main():
 
+    image_file = 'starter_check.png'
     sr_file = 'softresets.txt'
     soft_reset_count = get_num_soft_resets(sr_file)
     reset_per_session = 0
@@ -135,6 +155,10 @@ def main():
     mode = sys.argv[1]
     validate_mode(mode)
 
+    # coords = autodetect_x_y()
+    # print(coords)
+    # bulb_color_coordinate_nonshiny_x = coords['x']
+    # bulb_color_coordinate_nonshiny_y = coords['y']
     if mode in ['-m', '-monitor']:
         bulb_color_coordinate_nonshiny_x = 1190
         bulb_color_coordinate_nonshiny_y = 562
@@ -146,14 +170,16 @@ def main():
     start = time.time()
     try:
         # print(soft_reset_count)
-        perform_countdown()
+        perform_countdown(image_file)
+        pyautogui.keyDown('leftbracket') # speed up, or leftbracket
         while not_shiny:
             select_starter()
             walk_to_battle()
             progress_battle()
-            not_shiny = check_starter_shiny(nonshiny_r, nonshiny_g, nonshiny_b, bulb_color_coordinate_nonshiny_x, bulb_color_coordinate_nonshiny_y)
+            not_shiny = check_starter_shiny(nonshiny_r, nonshiny_g, nonshiny_b, bulb_color_coordinate_nonshiny_x, bulb_color_coordinate_nonshiny_y, image_file)
             soft_reset_count = increment_soft_reset(soft_reset_count, False)
             reset_per_session = increment_soft_reset(reset_per_session, True)
+        pyautogui.keyUp('leftbracket') # speed up
         post_actions(sr_file, soft_reset_count, reset_per_session, start)
     except KeyboardInterrupt:
         post_actions(sr_file, soft_reset_count, reset_per_session, start)
